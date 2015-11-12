@@ -1,0 +1,60 @@
+RFMIX NOTES
+
+
+/Users/ravulsu/repos/plink-1.07-mac-intel/plink --bfile ACB_example --chr 1 --make-bed --out per_chrom/ACB_example_chr1
+
+
+shapeit \
+--input-ref ../1000GP_Phase3/1000GP_Phase3_chr22.hap.gz \
+  ../1000GP_Phase3/1000GP_Phase3_chr22.legend.gz \
+  ../1000GP_Phase3/1000GP_Phase3.sample \
+  -B per_chrom/ACB_example_chr22 \
+  --duohmm \
+  --input-map ../1000GP_Phase3/genetic_map_chr22_combined_b37.txt \
+  --exclude-snp log/ACB_example_chr22.mendel.snp.strand.exclude \
+--output-max ACB_example_chr22.haps.gz \
+per_chrom/ACB_example_chr22.sample
+
+/Users/ravulsu/repos/rfmix/shapeit shapeit –input-ref 
+22_22_
+
+
+3) Make RFMix input
+I have written quick converters for two phasing programs: SHAPEIT2 and HAPI-UR.
+HAPI-UR
+The output from HAPI-UR is almost exactly what you need to run RFMix. Before running
+SHAPEIT2
+I also wrote a script to convert SHAPEIT2 output to RFMix input (as well as a .map file with 3 columns: physical position, cM position, rsID, which will be useful downstream), which you can run as follows:
+for i in {1..22}; do python shapeit2rfmix.py \ --shapeit_hap_ref ACB_example_chr${i}.haps.gz \ --shapeit_hap_admixed ACB_example_chr${i}.haps.gz \ --shapeit_sample_ref ACB_example_chr${i}.sample \ --shapeit_sample_admixed ACB_example_chr${i}.sample \ --ref_keep ACB_example.ref \ --admixed_keep ACB_example.notref \ --chr ${i} \ --genetic_map genetic_map_chr${i}_combined_b37.txt \ --out ACB_example; done 
+However, if you phased them separately, the script will check for strand flip errors across phased files and correct them where possible when run e.g. as follows:
+for i in {1..22}; do python shapeit2rfmix.py \ --shapeit_hap_ref CEU_example_chr${i}.haps.gz,YRI_example_chr${i}.haps.gz \ --shapeit_hap_admixed ACB_only_chr${i}.haps \ --shapeit_sample_ref CEU_example_chr${i}.sample,CEU_example_chr${i}.sample \ --shapeit_sample_admixed ACB_only_chr${i}.sample \ --ref_keep ACB.ref \ --admixed_keep ACB.notref \ --chr ${i} \ --genetic_map genetic_map_chr${i}_combined_b37.txt \ --out CEU_YRI_ACB; done 
+If you run the script as in the first example, you will need to fix the classes file , e.g. as follows:
+python classes.py \ --ref CEU_example_chr22.keep,YRI_example_chr22.keep \ --sample CEU_YRI_ACB.sample \ --out CEU_YRI_ACB.classes 
+Note that the sample file option here denotes a list of individuals as output by the previous script (consistent with individual order in alleles file), and NOT the shapeit sample file. Each ref file has at least two columns (similar to a plink keep file), with the relevant 2nd column corresponding with the individual ID.
+
+
+cd ancestry_pipeline/anc_sandbox.test
+for i in {1..22}; do python shapeit2rfmix.py \
+	--shapeit_hap_ref ACB_example_chr${i}.haps.gz \
+	--shapeit_hap_admixed per_chrom/ACB_example_chr${i}.haps.gz \
+	--shapeit_sample_ref per_chrom/ACB_example_chr${i}.sample \
+	--shapeit_sample_admixed per_chrom/ACB_example_chr${i}.sample \
+	--ref_keep ACB_example.ref \
+	--admixed_keep ACB_example.notref \
+	--chr ${i} \
+	--genetic_map ../1000GP_Phase3/genetic_map_chr${i}_combined_b37.txt \
+	--out ACB_example;
+done
+
+
+cd ancestry_pipeline/anc_sandbox.test
+python shapeit2rfmix.py \
+  --shapeit_hap_ref ACB_example_chr22.haps.gz \
+  --shapeit_hap_admixed per_chrom/ACB_example_chr22.haps.gz \
+  --shapeit_sample_ref per_chrom/ACB_example_chr22.sample \
+  --shapeit_sample_admixed per_chrom/ACB_example_chr22.sample \
+  --ref_keep ACB_example.ref \
+  --admixed_keep ACB_example.notref \
+  --chr 22 \
+  --genetic_map ../1000GP_Phase3/genetic_map_chr22_combined_b37.txt \
+  --out ACB_example
